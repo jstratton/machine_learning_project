@@ -5,12 +5,38 @@ date: "January 30, 2016"
 output: html_document
 ---
 
+```{r, echo=TRUE}
+library(dplyr)
+```
 
-```{r, echo = TRUE, cache=TRUE}
+```{r, echo=TRUE, cache=TRUE}
 # Import the data sets
 training <- read.csv(file = paste0(getwd(), "/pml-training.csv"))
 testing <- read.csv(file = paste0(getwd(), "/pml-testing.csv"))
 
 # Clean the data
+# First, we need to convert all of the #DIV/0 results into NAs
+divzeroes <- training == "#DIV/0!"
+training[divzeroes] <- NA
 
+divzeroes <- testing == "#DIV/0!"
+testing[divzeroes] <- NA
+
+# Most columns that have NA values consist almost entirely of NA values.
+# Therefore, we can remove these columns to clean up the data.
+good_columns <- apply(X = training, MARGIN = 2, function(x){!anyNA(x)})
+
+training <- training[good_columns]
+testing <- testing[good_columns]
+
+# The X, time stamp, and window variables will not, logically, work as predictors. So I will remove them. Isolating the problem id column from testing is also a good idea.
+
+problem_id <- testing$problem_id
+
+training <- training %>% select(-X, -raw_timestamp_part_1, -raw_timestamp_part_2, -cvtd_timestamp, -new_window, -num_window)
+
+testing <- testing %>% select(-X, -raw_timestamp_part_1, -raw_timestamp_part_2, -cvtd_timestamp, -new_window, -num_window, -problem_id)
+
+dim(training)
+dim(testing)
 ```

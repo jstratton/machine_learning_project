@@ -68,9 +68,49 @@ img {
 </div>
 
 
+<pre class="r"><code>library(dplyr)</code></pre>
+<pre><code>## Warning: package 'dplyr' was built under R version 3.2.2</code></pre>
+<pre><code>## 
+## Attaching package: 'dplyr'
+## 
+## The following objects are masked from 'package:stats':
+## 
+##     filter, lag
+## 
+## The following objects are masked from 'package:base':
+## 
+##     intersect, setdiff, setequal, union</code></pre>
 <pre class="r"><code># Import the data sets
 training &lt;- read.csv(file = paste0(getwd(), &quot;/pml-training.csv&quot;))
-testing &lt;- read.csv(file = paste0(getwd(), &quot;/pml-testing.csv&quot;))</code></pre>
+testing &lt;- read.csv(file = paste0(getwd(), &quot;/pml-testing.csv&quot;))
+
+# Clean the data
+# First, we need to convert all of the #DIV/0 results into NAs
+divzeroes &lt;- training == &quot;#DIV/0!&quot;
+training[divzeroes] &lt;- NA
+
+divzeroes &lt;- testing == &quot;#DIV/0!&quot;
+testing[divzeroes] &lt;- NA
+
+# Most columns that have NA values consist almost entirely of NA values.
+# Therefore, we can remove these columns to clean up the data.
+good_columns &lt;- apply(X = training, MARGIN = 2, function(x){!anyNA(x)})
+
+training &lt;- training[good_columns]
+testing &lt;- testing[good_columns]
+
+# The X, time stamp, and window variables will not, logically, work as predictors. So I will remove them. Isolating the problem id column from testing is also a good idea.
+
+problem_id &lt;- testing$problem_id
+
+training &lt;- training %&gt;% select(-X, -raw_timestamp_part_1, -raw_timestamp_part_2, -cvtd_timestamp, -new_window, -num_window)
+
+testing &lt;- testing %&gt;% select(-X, -raw_timestamp_part_1, -raw_timestamp_part_2, -cvtd_timestamp, -new_window, -num_window, -problem_id)
+
+dim(training)</code></pre>
+<pre><code>## [1] 19622    54</code></pre>
+<pre class="r"><code>dim(testing)</code></pre>
+<pre><code>## [1] 20 53</code></pre>
 
 
 </div>
