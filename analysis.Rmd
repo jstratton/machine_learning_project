@@ -1,0 +1,16 @@
+---
+title: "Machine Learning Project"
+author: "James Stratton"
+date: "January 30, 2016"
+output: html_document
+---
+
+
+```{r, echo = TRUE, cache=TRUE}
+# Import the data sets
+training <- read.csv(file = paste0(getwd(), "/pml-training.csv"))
+testing <- read.csv(file = paste0(getwd(), "/pml-testing.csv"))
+
+# Clean the data
+
+```
