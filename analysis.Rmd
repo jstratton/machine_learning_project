@@ -6,7 +6,7 @@ output: html_document
 ---
 
 ```{r, echo=TRUE}
-library(dplyr)
+library(dplyr); library(caret, quietly = TRUE); library(parallel); library(doParallel)
 ```
 
 ```{r, echo=TRUE, cache=TRUE}
@@ -36,7 +36,21 @@ problem_id <- testing$problem_id
 training <- training %>% select(-X, -raw_timestamp_part_1, -raw_timestamp_part_2, -cvtd_timestamp, -new_window, -num_window)
 
 testing <- testing %>% select(-X, -raw_timestamp_part_1, -raw_timestamp_part_2, -cvtd_timestamp, -new_window, -num_window, -problem_id)
+```
 
-dim(training)
-dim(testing)
+```{r, echo=TRUE, cache=TRUE}
+# Initialize parallel processing
+cluster <- makeCluster(detectCores() - 1) # Having an OS is nice
+registerDoParallel(cluster)
+
+# Set train to use k-fold cross validation, with k = 10
+fit_control <- trainControl(method = "cv", number = 10, allowParallel = TRUE)
+
+# I'm going to split the training data into an experimentation and validation data set.
+set.seed(1302016)
+
+# Switch to x and y notation for improved performance
+x <- training[,-length(training$classe)]
+y <- training[,length(training$classe)]
+exercise_model <- train(classe ~ ., data = training, method = "rf", preProcess = "pca")
 ```
