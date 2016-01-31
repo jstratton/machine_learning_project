@@ -68,7 +68,7 @@ img {
 </div>
 
 
-<pre class="r"><code>library(dplyr)</code></pre>
+<pre class="r"><code>library(dplyr); library(caret, quietly = TRUE); library(parallel); library(doParallel)</code></pre>
 <pre><code>## Warning: package 'dplyr' was built under R version 3.2.2</code></pre>
 <pre><code>## 
 ## Attaching package: 'dplyr'
@@ -80,6 +80,13 @@ img {
 ## The following objects are masked from 'package:base':
 ## 
 ##     intersect, setdiff, setequal, union</code></pre>
+<pre><code>## Warning: package 'caret' was built under R version 3.2.3</code></pre>
+<pre><code>## Warning: package 'ggplot2' was built under R version 3.2.1</code></pre>
+<pre><code>## Warning: package 'doParallel' was built under R version 3.2.3</code></pre>
+<pre><code>## Loading required package: foreach</code></pre>
+<pre><code>## Warning: package 'foreach' was built under R version 3.2.3</code></pre>
+<pre><code>## Loading required package: iterators</code></pre>
+<pre><code>## Warning: package 'iterators' was built under R version 3.2.3</code></pre>
 <pre class="r"><code># Import the data sets
 training &lt;- read.csv(file = paste0(getwd(), &quot;/pml-training.csv&quot;))
 testing &lt;- read.csv(file = paste0(getwd(), &quot;/pml-testing.csv&quot;))
@@ -105,12 +112,32 @@ problem_id &lt;- testing$problem_id
 
 training &lt;- training %&gt;% select(-X, -raw_timestamp_part_1, -raw_timestamp_part_2, -cvtd_timestamp, -new_window, -num_window)
 
-testing &lt;- testing %&gt;% select(-X, -raw_timestamp_part_1, -raw_timestamp_part_2, -cvtd_timestamp, -new_window, -num_window, -problem_id)
+testing &lt;- testing %&gt;% select(-X, -raw_timestamp_part_1, -raw_timestamp_part_2, -cvtd_timestamp, -new_window, -num_window, -problem_id)</code></pre>
+<pre class="r"><code># Initialize parallel processing
+cluster &lt;- makeCluster(detectCores() - 1) # Having an OS is nice
+registerDoParallel(cluster)
 
-dim(training)</code></pre>
-<pre><code>## [1] 19622    54</code></pre>
-<pre class="r"><code>dim(testing)</code></pre>
-<pre><code>## [1] 20 53</code></pre>
+# Set train to use k-fold cross validation, with k = 5
+fit_control &lt;- trainControl(method = &quot;cv&quot;, number = 5, allowParallel = TRUE)
+
+# I'm going to split the training data into an experimentation and validation data set.
+set.seed(1302016)
+
+# Switch to x and y notation for improved performance
+x &lt;- training[,-length(training)]
+y &lt;- training[,length(training)]
+exercise_model &lt;- train(x, y, data = training, method = &quot;rf&quot;, trControl = fit_control)</code></pre>
+<pre><code>## Loading required package: randomForest</code></pre>
+<pre><code>## Warning: package 'randomForest' was built under R version 3.2.3</code></pre>
+<pre><code>## randomForest 4.6-12
+## Type rfNews() to see new features/changes/bug fixes.
+## 
+## Attaching package: 'randomForest'
+## 
+## The following object is masked from 'package:dplyr':
+## 
+##     combine</code></pre>
+<pre class="r"><code>stopCluster(cluster)</code></pre>
 
 
 </div>

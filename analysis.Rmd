@@ -43,14 +43,16 @@ testing <- testing %>% select(-X, -raw_timestamp_part_1, -raw_timestamp_part_2, 
 cluster <- makeCluster(detectCores() - 1) # Having an OS is nice
 registerDoParallel(cluster)
 
-# Set train to use k-fold cross validation, with k = 10
-fit_control <- trainControl(method = "cv", number = 10, allowParallel = TRUE)
+# Set train to use k-fold cross validation, with k = 5
+fit_control <- trainControl(method = "cv", number = 5, allowParallel = TRUE)
 
 # I'm going to split the training data into an experimentation and validation data set.
 set.seed(1302016)
 
 # Switch to x and y notation for improved performance
-x <- training[,-length(training$classe)]
-y <- training[,length(training$classe)]
-exercise_model <- train(classe ~ ., data = training, method = "rf", preProcess = "pca")
+x <- training[,-length(training)]
+y <- training[,length(training)]
+exercise_model <- train(x, y, data = training, method = "rf", trControl = fit_control)
+
+stopCluster(cluster)
 ```
