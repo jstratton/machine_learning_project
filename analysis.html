@@ -8,7 +8,7 @@
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="pandoc" />
 
-<meta name="author" content="James Stratton" />
+<meta name="author" content="J. Stratton" />
 
 <meta name="date" content="2016-01-30" />
 
@@ -63,56 +63,49 @@ img {
 
 <div id="header">
 <h1 class="title">Machine Learning Project</h1>
-<h4 class="author"><em>James Stratton</em></h4>
+<h4 class="author"><em>J. Stratton</em></h4>
 <h4 class="date"><em>January 30, 2016</em></h4>
 </div>
 
 
-<pre class="r"><code>library(dplyr); library(caret, quietly = TRUE); library(parallel); library(doParallel)</code></pre>
-<pre><code>## Warning: package 'dplyr' was built under R version 3.2.2</code></pre>
-<pre><code>## 
-## Attaching package: 'dplyr'
-## 
-## The following objects are masked from 'package:stats':
-## 
-##     filter, lag
-## 
-## The following objects are masked from 'package:base':
-## 
-##     intersect, setdiff, setequal, union</code></pre>
-<pre><code>## Warning: package 'caret' was built under R version 3.2.3</code></pre>
-<pre><code>## Warning: package 'ggplot2' was built under R version 3.2.1</code></pre>
-<pre><code>## Warning: package 'doParallel' was built under R version 3.2.3</code></pre>
-<pre><code>## Loading required package: foreach</code></pre>
-<pre><code>## Warning: package 'foreach' was built under R version 3.2.3</code></pre>
-<pre><code>## Loading required package: iterators</code></pre>
-<pre><code>## Warning: package 'iterators' was built under R version 3.2.3</code></pre>
-<pre class="r"><code># Import the data sets
-training &lt;- read.csv(file = paste0(getwd(), &quot;/pml-training.csv&quot;))
+<div id="abstract" class="section level1">
+<h1>Abstract</h1>
+<p>I created a random forest model to detect common weight lifting errors. 54 variables were used to categorize weight lifting data into 5 categories. 4 of the categories corresponded to poor weight lifting techniques with the remaining category corresponding to proper weight lifting technique. More information about each category can be found at <a href="http://groupware.les.inf.puc-rio.br/har" class="uri">http://groupware.les.inf.puc-rio.br/har</a>. Model accuracy consistently achieved 99% accuracy during k-fold cross-validation.</p>
+<pre class="r"><code>library(dplyr); library(caret); library(parallel); library(doParallel); library(randomForest)</code></pre>
+</div>
+<div id="getting-and-cleaning-data" class="section level1">
+<h1>Getting and Cleaning Data</h1>
+<ul>
+<li>Datasets were downloaded to the local drive from an HTTPS link.<br /></li>
+<li>All columns with NA values were removed from both data sets.<br /> + “#Div/0” values were counted as NAs.<br /> + Every row had an NA, so row wise removal isn’t viable.<br /> + Columns with NAs consisted almost entirely of NAs.<br /> + Therefore, removing these columns isn’t much of a loss.<br /></li>
+<li>Several variables were removed from both sets.<br /> + <em>X</em> is a key for the data frame, so won’t help make predictions.<br /> + All of the time variables were removed because they were beyond the scope of this project.<br /></li>
+<li><em>User</em>_<em>Name</em> was kept in the data sets.<br /> + The original authors used this variable due to lack of data.<br /> + More data would be needed to make this a generic model.</li>
+</ul>
+<pre class="r"><code>training &lt;- read.csv(file = paste0(getwd(), &quot;/pml-training.csv&quot;))
 testing &lt;- read.csv(file = paste0(getwd(), &quot;/pml-testing.csv&quot;))
 
-# Clean the data
-# First, we need to convert all of the #DIV/0 results into NAs
-divzeroes &lt;- training == &quot;#DIV/0!&quot;
-training[divzeroes] &lt;- NA
+training[training == &quot;#DIV/0!&quot;] &lt;- NA
+testing[testing == &quot;#DIV/0!&quot;] &lt;- NA
 
-divzeroes &lt;- testing == &quot;#DIV/0!&quot;
-testing[divzeroes] &lt;- NA
-
-# Most columns that have NA values consist almost entirely of NA values.
-# Therefore, we can remove these columns to clean up the data.
 good_columns &lt;- apply(X = training, MARGIN = 2, function(x){!anyNA(x)})
 
 training &lt;- training[good_columns]
 testing &lt;- testing[good_columns]
-
-# The X, time stamp, and window variables will not, logically, work as predictors. So I will remove them. Isolating the problem id column from testing is also a good idea.
 
 problem_id &lt;- testing$problem_id
 
 training &lt;- training %&gt;% select(-X, -raw_timestamp_part_1, -raw_timestamp_part_2, -cvtd_timestamp, -new_window, -num_window)
 
 testing &lt;- testing %&gt;% select(-X, -raw_timestamp_part_1, -raw_timestamp_part_2, -cvtd_timestamp, -new_window, -num_window, -problem_id)</code></pre>
+</div>
+<div id="modeling" class="section level1">
+<h1>Modeling</h1>
+<ul>
+<li>I decided to use a random forest model.<br /></li>
+<li>Random forests are a good choice for categorical data due to their structure.<br /></li>
+<li>I chose to use 5-fold cross-validation to analyze the consistency of my model.<br /> + Caret’s default 10-fold cross-validation took too long.<br /> + Using 5 folds seemed like a good compromise between increased bias and processing time.<br /></li>
+<li>Parallel processing was implemented to speed up processing.</li>
+</ul>
 <pre class="r"><code># Initialize parallel processing
 cluster &lt;- makeCluster(detectCores() - 1) # Having an OS is nice
 registerDoParallel(cluster)
@@ -120,24 +113,41 @@ registerDoParallel(cluster)
 # Set train to use k-fold cross validation, with k = 5
 fit_control &lt;- trainControl(method = &quot;cv&quot;, number = 5, allowParallel = TRUE)
 
-# I'm going to split the training data into an experimentation and validation data set.
 set.seed(1302016)
 
-# Switch to x and y notation for improved performance
+# Switch to x,y notation for improved performance
 x &lt;- training[,-length(training)]
 y &lt;- training[,length(training)]
-exercise_model &lt;- train(x, y, data = training, method = &quot;rf&quot;, trControl = fit_control)</code></pre>
-<pre><code>## Loading required package: randomForest</code></pre>
-<pre><code>## Warning: package 'randomForest' was built under R version 3.2.3</code></pre>
-<pre><code>## randomForest 4.6-12
-## Type rfNews() to see new features/changes/bug fixes.
+exercise_model &lt;- train(x, y, data = training, method = &quot;rf&quot;, trControl = fit_control)
+
+stopCluster(cluster)</code></pre>
+</div>
+<div id="results" class="section level1">
+<h1>Results</h1>
+<pre class="r"><code>exercise_model$resample</code></pre>
+<pre><code>##    Accuracy     Kappa Resample
+## 1 0.9936306 0.9919428    Fold1
+## 2 0.9951580 0.9938750    Fold3
+## 3 0.9949032 0.9935527    Fold2
+## 4 0.9938838 0.9922624    Fold5
+## 5 0.9943949 0.9929101    Fold4</code></pre>
+<pre class="r"><code>confusionMatrix.train(data = exercise_model, reference = training$classe)</code></pre>
+<pre><code>## Cross-Validated (5 fold) Confusion Matrix 
 ## 
-## Attaching package: 'randomForest'
-## 
-## The following object is masked from 'package:dplyr':
-## 
-##     combine</code></pre>
-<pre class="r"><code>stopCluster(cluster)</code></pre>
+## (entries are percentages of table totals)
+##  
+##           Reference
+## Prediction    A    B    C    D    E
+##          A 28.4  0.1  0.0  0.0  0.0
+##          B  0.0 19.2  0.1  0.0  0.0
+##          C  0.0  0.0 17.3  0.1  0.0
+##          D  0.0  0.0  0.1 16.2  0.0
+##          E  0.0  0.0  0.0  0.0 18.3</code></pre>
+<ul>
+<li>All 5 folds had over 99% accuracy, as reflected in the confusion matrix.<br /></li>
+<li>Taking the averages of the accuracies from each fold, I’d estimate the out of sample error rate as 99.4%.</li>
+</ul>
+</div>
 
 
 </div>

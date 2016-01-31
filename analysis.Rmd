@@ -1,35 +1,43 @@
 ---
 title: "Machine Learning Project"
-author: "James Stratton"
+author: "J. Stratton"
 date: "January 30, 2016"
 output: html_document
 ---
 
-```{r, echo=TRUE}
-library(dplyr); library(caret, quietly = TRUE); library(parallel); library(doParallel)
+# Abstract
+I created a random forest model to detect common weight lifting errors. 54 variables were used to categorize weight lifting data into 5 categories. 4 of the categories corresponded to poor weight lifting techniques with the remaining category corresponding to proper weight lifting technique. More information about each category can be found at http://groupware.les.inf.puc-rio.br/har. Model accuracy consistently achieved 99% accuracy during k-fold cross-validation.
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+library(dplyr); library(caret); library(parallel); library(doParallel); library(randomForest)
 ```
 
+# Getting and Cleaning Data
+* Datasets were downloaded to the local drive from an HTTPS link.  
+* All columns with NA values were removed from both data sets.  
+        + "#Div/0" values were counted as NAs.  
+        + Every row had an NA, so row wise removal isn't viable.  
+        + Columns with NAs consisted almost entirely of NAs.  
+        + Therefore, removing these columns isn't much of a loss.  
+* Several variables were removed from both sets.  
+        + _X_ is a key for the data frame, so won't help make predictions.  
+        + All of the time variables were removed because they were beyond the scope of this project.  
+* _User_\__Name_ was kept in the data sets.  
+        + The original authors used this variable due to lack of data.  
+        + More data would be needed to make this a generic model.  
+
+
 ```{r, echo=TRUE, cache=TRUE}
-# Import the data sets
 training <- read.csv(file = paste0(getwd(), "/pml-training.csv"))
 testing <- read.csv(file = paste0(getwd(), "/pml-testing.csv"))
 
-# Clean the data
-# First, we need to convert all of the #DIV/0 results into NAs
-divzeroes <- training == "#DIV/0!"
-training[divzeroes] <- NA
+training[training == "#DIV/0!"] <- NA
+testing[testing == "#DIV/0!"] <- NA
 
-divzeroes <- testing == "#DIV/0!"
-testing[divzeroes] <- NA
-
-# Most columns that have NA values consist almost entirely of NA values.
-# Therefore, we can remove these columns to clean up the data.
 good_columns <- apply(X = training, MARGIN = 2, function(x){!anyNA(x)})
 
 training <- training[good_columns]
 testing <- testing[good_columns]
-
-# The X, time stamp, and window variables will not, logically, work as predictors. So I will remove them. Isolating the problem id column from testing is also a good idea.
 
 problem_id <- testing$problem_id
 
@@ -37,6 +45,14 @@ training <- training %>% select(-X, -raw_timestamp_part_1, -raw_timestamp_part_2
 
 testing <- testing %>% select(-X, -raw_timestamp_part_1, -raw_timestamp_part_2, -cvtd_timestamp, -new_window, -num_window, -problem_id)
 ```
+
+# Modeling
+* I decided to use a random forest model.  
+* Random forests are a good choice for categorical data due to their structure.  
+* I chose to use 5-fold cross-validation to analyze the consistency of my model.  
+        + Caret's default 10-fold cross-validation took too long.  
+        + Using 5 folds seemed like a good compromise between increased bias and processing time.  
+* Parallel processing was implemented to speed up processing.  
 
 ```{r, echo=TRUE, cache=TRUE}
 # Initialize parallel processing
@@ -46,13 +62,22 @@ registerDoParallel(cluster)
 # Set train to use k-fold cross validation, with k = 5
 fit_control <- trainControl(method = "cv", number = 5, allowParallel = TRUE)
 
-# I'm going to split the training data into an experimentation and validation data set.
 set.seed(1302016)
 
-# Switch to x and y notation for improved performance
+# Switch to x,y notation for improved performance
 x <- training[,-length(training)]
 y <- training[,length(training)]
 exercise_model <- train(x, y, data = training, method = "rf", trControl = fit_control)
 
 stopCluster(cluster)
 ```
+
+# Results
+
+```{r, echo=TRUE}
+exercise_model$resample
+confusionMatrix.train(data = exercise_model, reference = training$classe)
+```
+
+* All 5 folds had over 99% accuracy.  
+* Taking the averages of the accuracies from each fold, I'd estimate the out of sample error rate as `r options(digits = 1); 100*mean(exercise_model$resample$Accuracy)`%.  
