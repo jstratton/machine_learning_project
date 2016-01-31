@@ -6,7 +6,7 @@ output: html_document
 ---
 
 # Abstract
-I created a random forest model to detect common weight lifting errors. 54 variables were used to categorize weight lifting data into 5 categories. 4 of the categories corresponded to poor weight lifting techniques with the remaining category corresponding to proper weight lifting technique. More information about each category can be found at http://groupware.les.inf.puc-rio.br/har. Model accuracy consistently achieved 99% accuracy during k-fold cross-validation.
+I created a random forest model to detect common weight lifting errors. 54 variables were used to categorize weight lifting data into 5 categories. 4 of the categories corresponded to poor weight lifting techniques with the remaining category corresponding to proper weight lifting technique. More information about each category can be found at http://groupware.les.inf.puc-rio.br/har. Using 5-fold cross-validation, the out of sample error rate was determined to be 0.06%.
 
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
 library(dplyr); library(caret); library(parallel); library(doParallel); library(randomForest)

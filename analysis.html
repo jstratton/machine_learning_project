@@ -70,7 +70,7 @@ img {
 
 <div id="abstract" class="section level1">
 <h1>Abstract</h1>
-<p>I created a random forest model to detect common weight lifting errors. 54 variables were used to categorize weight lifting data into 5 categories. 4 of the categories corresponded to poor weight lifting techniques with the remaining category corresponding to proper weight lifting technique. More information about each category can be found at <a href="http://groupware.les.inf.puc-rio.br/har" class="uri">http://groupware.les.inf.puc-rio.br/har</a>. Model accuracy consistently achieved 99% accuracy during k-fold cross-validation.</p>
+<p>I created a random forest model to detect common weight lifting errors. 54 variables were used to categorize weight lifting data into 5 categories. 4 of the categories corresponded to poor weight lifting techniques with the remaining category corresponding to proper weight lifting technique. More information about each category can be found at <a href="http://groupware.les.inf.puc-rio.br/har" class="uri">http://groupware.les.inf.puc-rio.br/har</a>. Using 5-fold cross-validation, the out of sample error rate was determined to be 0.06%.</p>
 <pre class="r"><code>library(dplyr); library(caret); library(parallel); library(doParallel); library(randomForest)</code></pre>
 </div>
 <div id="getting-and-cleaning-data" class="section level1">
@@ -144,7 +144,7 @@ stopCluster(cluster)</code></pre>
 ##          D  0.0  0.0  0.1 16.2  0.0
 ##          E  0.0  0.0  0.0  0.0 18.3</code></pre>
 <ul>
-<li>All 5 folds had over 99% accuracy, as reflected in the confusion matrix.<br /></li>
+<li>All 5 folds had over 99% accuracy.<br /></li>
 <li>Taking the averages of the accuracies from each fold, I’d estimate the out of sample error rate as 99.4%.</li>
 </ul>
 </div>

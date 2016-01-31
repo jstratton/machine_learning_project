@@ -1,1 +1,2 @@
-# machine_learning_project
+# Machine Learning Project
+I created a random forest machine learning algorithm in order to categorize the quality of a person's weight lifting. I achieved a 99.4% out of sample accuracy using my algorithm. More information about the research that generated the data sets created for this project can be found at http://groupware.les.inf.puc-rio.br/har.
